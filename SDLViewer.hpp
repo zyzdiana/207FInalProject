@@ -91,6 +91,7 @@ class SDLViewer {
 
   // Center of viewer
   Point center_;
+  Point pre_c;
 
   struct safe_lock {
     SDLViewer* v_;
@@ -120,7 +121,7 @@ class SDLViewer {
     /** Constructor */
   SDLViewer()
       : surface_(nullptr), event_thread_(nullptr), lock_(nullptr),
-        render_requested_(false), center_(Point(0)) {
+        render_requested_(false), center_(Point(0)), pre_c(Point(0)) {
   }
 
   /** Destructor - Waits until the event thread exits, then cleans up
@@ -331,9 +332,21 @@ class SDLViewer {
         center_ +=position_function(n);
       }
       Point dis=center_/coords_.size()-camera_.center();
-      
-      if(norm(dis)>1){
-        camera_.view_point(center_/coords_.size()+dis);
+      std::cout<<"Center Point: "<<norm(dis)<<"  Distance: "<<camera_.distance()/2<<std::endl;
+      if(norm(dis)>camera_.distance()/2){
+        Point set=center_/coords_.size()+dis;
+	Point check=(pre_c-center_)/coords_.size();
+	if(check.x<0.05){
+	  set.x=(center_/coords_.size()).x;
+	}
+	if(check.y<0.05){
+	  set.y=(center_/coords_.size()).y;
+	}
+	if(check.z<0.05){
+	  set.z=(center_/coords_.size()).z;
+	}
+	camera_.view_point(set);
+        pre_c=center_;
       }
     }
 

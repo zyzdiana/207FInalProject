@@ -173,8 +173,14 @@ class GLCamera {
 
   /** Return Center of Camera
    */
-  const Point center() const{
+  inline const Point center() const{
     return point;
+  }
+
+  /** Return Distance of Camera
+   */
+  inline float distance() const{
+    return dist;
   }
 }; // end GLCamera
 
