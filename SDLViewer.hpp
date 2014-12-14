@@ -96,6 +96,9 @@ class SDLViewer {
   // Max coords
   double maximum_[6];   //[x_max, x_min, y_max, y_min, z_max, z_min]
 
+  // Whether auto track
+  bool auto_track_;
+
   struct safe_lock {
     SDLViewer* v_;
     bool ok_;
@@ -124,7 +127,7 @@ class SDLViewer {
     /** Constructor */
   SDLViewer()
       : surface_(nullptr), event_thread_(nullptr), lock_(nullptr),
-        render_requested_(false), center_(Point(0)), pre_c(Point(0)) {
+        render_requested_(false), center_(Point(0)), pre_c(Point(0)), auto_track_(false) {
   }
 
   /** Destructor - Waits until the event thread exits, then cleans up
@@ -343,12 +346,14 @@ class SDLViewer {
       }
 
       // Zoom out if graph is large
-      if((maximum_[0]-maximum_[1])>camera_.distance()*0.75) camera_.zoom(1.5);
-      else if((maximum_[2]-maximum_[3])>camera_.distance()*0.75) camera_.zoom(1.5);
-      else if((maximum_[4]-maximum_[5])>camera_.distance()*0.75) camera_.zoom(1.5);
+      if(auto_track_){
+        if((maximum_[0]-maximum_[1])>camera_.distance()*0.75) camera_.zoom(1.5);
+        else if((maximum_[2]-maximum_[3])>camera_.distance()*0.75) camera_.zoom(1.5);
+        else if((maximum_[4]-maximum_[5])>camera_.distance()*0.75) camera_.zoom(1.5);
+      }
 
       Point dis=center_/coords_.size()-camera_.center();
-      if(norm(dis)>camera_.distance()/2){
+      if(auto_track_&& (norm(dis)>camera_.distance()/2) ){
         Point set=center_/coords_.size()+dis;
         Point check=(pre_c-center_)/coords_.size();
         if(check.x<0.05){
@@ -362,8 +367,6 @@ class SDLViewer {
       	}
       	camera_.view_point(set);
         pre_c=center_;
-        std::cout<<"Change: "<<set<<"Coord size: "<<coords_.size()<<"Distance: "<<camera_.distance()<<std::endl;
-        std::cout<<maximum_[0]<<" "<<maximum_[1]<<" "<<maximum_[2]<<" "<<maximum_[3]<<" "<<maximum_[4]<<" "<<maximum_[5]<<std::endl;
         }
       }
 
@@ -588,6 +591,12 @@ class SDLViewer {
         // Keyboard 'c' to center
         if (event.key.keysym.sym == SDLK_c)
           center_view();
+        // Keyboard 't' to stop or resume auto tracking
+        if (event.key.keysym.sym == SDLK_t){
+          auto_track_ = auto_track_^true;
+          if(auto_track_) std::cout<<"Auto tracking on"<<std::endl;
+          else std::cout<<"Auto tracking off"<<std::endl;  
+        }   
         // Keyboard 'esc' to exit
         if (event.key.keysym.sym == SDLK_ESCAPE
             || event.key.keysym.sym == SDLK_q)
