@@ -93,6 +93,9 @@ class SDLViewer {
   Point center_;
   Point pre_c;
 
+  // Max coords
+  double maximum_[6];   //[x_max, x_min, y_max, y_min, z_max, z_min]
+
   struct safe_lock {
     SDLViewer* v_;
     bool ok_;
@@ -319,35 +322,50 @@ class SDLViewer {
         // Get node and record the index mapping
         auto n = *first;
         auto r = node_map.insert(typename Map::value_type(n,coords_.size()));
+        Point pos = position_function(n);
         if (r.second) {   // new node was inserted
-          coords_.push_back(position_function(n));
+          coords_.push_back(pos);
           colors_.push_back(color_function(n));
         } 
         else {          // node already exists and not updated
           unsigned index = r.first->second;
           center_ -= coords_[index];
-          coords_[index] = position_function(n);
+          coords_[index] = pos;
           colors_[index] = color_function(n);
         }
-        center_ +=position_function(n);
+        if(pos.x>maximum_[0]) maximum_[0] = pos.x;
+        if(pos.x<maximum_[1]) maximum_[1] = pos.x;
+        if(pos.y>maximum_[2]) maximum_[2] = pos.y;
+        if(pos.y<maximum_[3]) maximum_[3] = pos.y;
+        if(pos.z>maximum_[4]) maximum_[4] = pos.z;
+        if(pos.z<maximum_[5]) maximum_[5] = pos.z;
+        center_ +=pos;
       }
+
+      // Zoom out if graph is large
+      if((maximum_[0]-maximum_[1])>camera_.distance()*0.75) camera_.zoom(1.5);
+      else if((maximum_[2]-maximum_[3])>camera_.distance()*0.75) camera_.zoom(1.5);
+      else if((maximum_[4]-maximum_[5])>camera_.distance()*0.75) camera_.zoom(1.5);
+
       Point dis=center_/coords_.size()-camera_.center();
       if(norm(dis)>camera_.distance()/2){
         Point set=center_/coords_.size()+dis;
-	Point check=(pre_c-center_)/coords_.size();
-	if(check.x<0.05){
-	  set.x=(center_/coords_.size()).x;
-	}
-	if(check.y<0.05){
-	  set.y=(center_/coords_.size()).y;
-	}
-	if(check.z<0.05){
-	  set.z=(center_/coords_.size()).z;
-	}
-	camera_.view_point(set);
+        Point check=(pre_c-center_)/coords_.size();
+        if(check.x<0.05){
+      	  set.x=(pre_c.x/2+center_.x/2)/coords_.size();
+      	}
+      	if(check.y<0.05){
+      	  set.y=(pre_c.y/2+center_.y/2)/coords_.size();
+      	}
+      	if(check.z<0.05){
+      	  set.z=(pre_c.z/2+center_.z/2)/coords_.size();
+      	}
+      	camera_.view_point(set);
         pre_c=center_;
+        std::cout<<"Change: "<<set<<"Coord size: "<<coords_.size()<<"Distance: "<<camera_.distance()<<std::endl;
+        std::cout<<maximum_[0]<<" "<<maximum_[1]<<" "<<maximum_[2]<<" "<<maximum_[3]<<" "<<maximum_[4]<<" "<<maximum_[5]<<std::endl;
+        }
       }
-    }
 
     request_render();
   }
@@ -484,6 +502,14 @@ class SDLViewer {
     camera_.zoom_mag(2);
     //camera_.rotate_y(0.5);
     //camera_.rotate_x(0.5);
+
+    // Set up maximum
+    maximum_[0] = 0;
+    maximum_[1] = 0;
+    maximum_[2] = 0;
+    maximum_[3] = 0;
+    maximum_[4] = 0;
+    maximum_[5] = 0;
 
     // Point system
     glEnable(GL_POINT_SMOOTH);
