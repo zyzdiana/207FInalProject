@@ -332,7 +332,6 @@ class SDLViewer {
         center_ +=position_function(n);
       }
       Point dis=center_/coords_.size()-camera_.center();
-      std::cout<<"Center Point: "<<norm(dis)<<"  Distance: "<<camera_.distance()/2<<std::endl;
       if(norm(dis)>camera_.distance()/2){
         Point set=center_/coords_.size()+dis;
 	Point check=(pre_c-center_)/coords_.size();
