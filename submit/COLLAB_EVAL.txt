@@ -1,0 +1,60 @@
+Each team should submit a review of any collaborations that were involved in the development of the final project in a COLLAB EVAL.txt with the code. This should include detailing what resources the other team provided you, a code review of the code you received, and a general evaluation of the collaboration. What went right, what went wrong, what had to be changed, and what would you have done differently? 
+
+We attempted to collaborate with four other teams to develop our final simulation. 
+
+First we attempted to use the bouncing ball developed by Tian Lan and Xide Xia in their meshed mass spring, and we used their .nodes and .tris data files for the bouncing ball, and we made that ball into a fixed ball that hangs below the ceiling in our final simulation the other two tetrahedral balls in our simulation can bounce on this ball. 
+We used the sphere200.nodes and sphere200.tris that they provided for the bouncing, and we included that in our meshed_mass_spring.cpp
+There code was written and documented very well, we could understand the code without any problem. However there was some minor problems with the constants on the pressure inside the ball that causes the bouncing ball to constantly explode, especially when we try to use both their ball and the two tetrahedral balls, so in then end we used their data for the balls to display the ball as a sphere constrain only.
+
+Next, we incorporated the tetrahedral balls developed by Jeff Shen and Yung-jen.
+We used the tet_mesh.hpp that they provided and we included that in our meshed_mass_spring.cpp
+Their code very well done, and process of combining our code was extremely smooth. Their were only some minor updates on some variable names to avoid duplications and to accommodate our code.
+
+Then, we used the collision detection algorithm by Erik and Lukas. 
+Their code provide very help insight on how to detect collision, however, their collision detection works only with triangle class, whereas we are using tetrahedral balls, so we followed their algorithm and wrote our own collision algorithm for tetrahedral mesh to detect collisions.
+
+
+We also used part of Brian Zhang’s algorithm in the interaction between the trampoline and the tetrahedral balls, so that the balls could bounce on and off the trampoline. 
+Below is the part of the code we used from Brain Zhang
+
+template<typename MESH1, typename MESH2>
+void interact(MESH1& b, MESH2& s, double t, double dt, Point c, double r=0.2) {
+  for (auto it = s.node_begin(); it != s.node_end(); ++it) {
+    auto n = *it;
+    if (norm(n.position() - c) < r) {
+      Point R = n.position() - c;
+      assert(norm(R) > 0);
+      R /= norm(R);
+      // R is a unit vector pointing from the center of the
+      // sphere towards our point
+
+      // Mass-spring force that the point in the sheet experiences
+      Point f = Point(0,0,0);
+      for (auto it2 = n.edge_begin(); it2 != n.edge_end(); ++it2) {
+        auto e = *it2;
+        auto n2 = e.node2();
+        f += -e.value().K * (n.position() - n2.position()) / e.length() * (e.length() - e.value().initial_len);
+      }
+      // Add gravity force
+      //f += Point(0,0,-g*n.value().mass);
+
+      // f2 is the component of f pointing in the radial direction
+      Point f2 = R*dot(f, R);
+
+      // use f2 to update the ball velocity
+      Point b_velocity = Point(0);
+      for (auto it_b = b.node_begin(); it_b != b.node_end(); ++it_b){
+        (*it_b).value().velocity += f2 * (dt / (*it_b).value().mass);
+        b_velocity += (*it_b).value().velocity;
+      }
+      b_velocity /= b.num_nodes();
+
+      // set the Node's position to the closest point on the radius of the ball
+      n.position() = c + R*r;
+      // set the Node's velocity to have radial component equal to the ball
+      n.value().velocity -= R*dot(n.value().velocity, R);
+      n.value().velocity += R*dot(b_velocity, R);
+    }
+  }
+  (void) t;
+}
